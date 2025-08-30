@@ -7,10 +7,20 @@ app = Flask(__name__)
 def get_recipes(ingredient):
     conn = sqlite3.connect("recipes.db")
     cursor = conn.cursor()
-    cursor.execute(
-        "SELECT name, ingredients, calories, image_url FROM recipes WHERE ingredients LIKE ?",
-        ('%' + ingredient + '%',)
-    )
+    
+    # Split ingredients by comma and search for each one
+    ingredients_list = [ing.strip().lower() for ing in ingredient.split(',')]
+    
+    # Build a flexible search query
+    conditions = []
+    params = []
+    for ing in ingredients_list:
+        conditions.append("LOWER(ingredients) LIKE ?")
+        params.append(f'%{ing}%')
+    
+    query = f"SELECT name, ingredients, calories, image_url FROM recipes WHERE {' OR '.join(conditions)}"
+    
+    cursor.execute(query, params)
     results = cursor.fetchall()
     conn.close()
     return [
